@@ -1,4 +1,3 @@
-using System.Security.Cryptography.X509Certificates;
 using Raylib_cs;
 
 class Paddle
@@ -15,10 +14,9 @@ class Paddle
     public float Y => paddleY;
     public int Width => paddleWidth;
     public int Height => paddleHeight;
-    PaddleController paddleController;
     
 
-    public Paddle(int PaddleWidth, int PaddleHeight,int PaddleX, float PaddleY, float PaddleSpeed, int WindowY, PaddleController PaddleController)
+    public Paddle(int PaddleWidth, int PaddleHeight,int PaddleX, float PaddleY, float PaddleSpeed, int WindowY)
     {
         paddleWidth = PaddleWidth;
         paddleHeight = PaddleHeight;
@@ -28,18 +26,22 @@ class Paddle
         windowY = WindowY;
         paddleMinY = 0;
         paddleMaxY = windowY - paddleHeight;
-        paddleController = PaddleController;
     }
 
-    public void Move(float deltaTime)
+    public void Move(float deltaTime, int direction)
     {
-            paddleY += paddleSpeed * paddleController.GetMovementDirection() * deltaTime; 
+            paddleY += paddleSpeed * direction * deltaTime; 
             paddleY = Math.Clamp(paddleY, paddleMinY, paddleMaxY);
     }
 
     public void Draw()
     {
         Raylib.DrawRectangle(paddleX, (int)paddleY, paddleWidth, paddleHeight, Color.White);
+    }
+
+    public void reset()
+    {
+        
     }
 }
 

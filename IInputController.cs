@@ -1,0 +1,4 @@
+interface IInputController
+{
+    int GetMovementDirection();
+}

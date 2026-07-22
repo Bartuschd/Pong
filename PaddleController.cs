@@ -1,6 +1,6 @@
 using Raylib_cs;
 
-class PaddleController
+class PaddleController : IInputController
 {
     KeyboardKey upKey;
     KeyboardKey downKey;

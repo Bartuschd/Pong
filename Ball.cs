@@ -19,7 +19,7 @@ class Ball
 
 
 
-    public Ball(int MiddleY, int MiddleX, int BallSpeed, int BallSize, Color Color, int AreaYMin, int AreaYMax)
+    public Ball(int MiddleY, int MiddleX, int BallSpeed, int BallSize, Color Color, int AreaYMin, int AreaYMax, float MaxBallSpeed)
     {
         areaYMin = AreaYMin;
         areaYMax = AreaYMax;
@@ -28,7 +28,7 @@ class Ball
         ballSize = BallSize;
         color = Color;
         ballSpeed = BallSpeed;
-        maxBallSpeed = ballSpeed * 2f;
+        maxBallSpeed = ballSpeed * MaxBallSpeed;
         ballDirection = (rnd.Next(2) == 0) ? -1 : 1;
         ballAngle = rnd.Next(-30, 31);
 

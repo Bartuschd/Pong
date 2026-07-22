@@ -1,32 +1,56 @@
-﻿using System.Data;
-using Raylib_cs;
+﻿using Raylib_cs;
 
 
+//Default Paddle Values
+float paddleMovementSpeed = 350f;
+float paddleY = 150f;
+int paddleWidth= 10;
+int paddleHeight = 200;
+int playerOnePaddleX = 15;
+int playerTwoPaddleX = 775;
 
+//Default Player One Controls
+KeyboardKey playerOneUp = KeyboardKey.W;
+KeyboardKey playerOneDown = KeyboardKey.S;
+
+//Default Player Two Controls
+KeyboardKey playerTwoUp = KeyboardKey.U;
+KeyboardKey playerTwoDown = KeyboardKey.J;
+
+//Default Ball Values
+int ballMiddleY = 300;
+int ballMiddleX = 400;
+int ballSpeed = 300;
+int ballSize = 10;
+int ballAreaYMin = 0;
+float maxBallSpeed = 3f;
+Color ballColor = Color.Purple;
+
+//Window Setup
 const int windowX = 800;
 const int windowY = 600;
 
+//Text Strings
 const string gameOverText = "Game Over!";
-
 const string playerOneWin = "Player One Wins!";
-
 const string playerTwoWin = "Player Two Wins!";
-
 const string pauseText = "Paused!";
 
+//Default Gamestate
 GameState currentState = GameState.Playing;
 
+//Default Point Values
 int pointsPlayerOne = 0;
 int pointsPlayerTwo = 0;
 const int winningScore = 3;
 
+//Default Class Init
+IInputController paddlePlayerOneController = new PaddleController(playerOneUp, playerOneDown);
+IInputController paddlePlayerTwoController = new PaddleController(playerTwoUp, playerTwoDown);
+Paddle paddlePlayerOne = new Paddle(paddleWidth, paddleHeight, playerOnePaddleX, paddleY, paddleMovementSpeed, windowY);
+Paddle paddlePlayerTwo = new Paddle(paddleWidth, paddleHeight, playerTwoPaddleX, paddleY, paddleMovementSpeed, windowY);
 
-PaddleController paddlePlayerOneController = new PaddleController(KeyboardKey.W, KeyboardKey.S);
-PaddleController paddlePlayerTwoController = new PaddleController(KeyboardKey.U, KeyboardKey.J);
-Paddle paddlePlayerOne = new Paddle(10, 200, 25, 150f, 200f, windowY, paddlePlayerOneController);
-Paddle paddlePlayerTwo = new Paddle(10, 200, 775, 150f, 200f, windowY, paddlePlayerTwoController);
-
-Ball ball = new Ball(300, 400, 300, 10, Color.Purple, 0, windowY);
+Ball ball = new Ball(ballMiddleX, ballMiddleY, ballSpeed, ballSize, ballColor, ballAreaYMin, windowY, maxBallSpeed);
 
 
 
@@ -46,6 +70,8 @@ int playerTwoWinX = (windowX - playerTwoWinWidth) / 2;
 int pauseTextWidth = Raylib.MeasureText(pauseText, 40);
 int pauseTextX = (windowX - pauseTextWidth) / 2;
 
+NetworkHost networkHost = new NetworkHost();
+networkHost.Start();
 
 while (!Raylib.WindowShouldClose())
 {
@@ -85,6 +111,7 @@ while (!Raylib.WindowShouldClose())
 }
 
 Raylib.CloseWindow();
+networkHost.Stop();
 
 
 
@@ -94,62 +121,41 @@ void Update()
 {
     float deltaTime = Raylib.GetFrameTime();
 
+    networkHost.CheckForClient();
+
 
 
     if(currentState == GameState.Playing)
     {
         if (Raylib.IsKeyPressed(KeyboardKey.R))
         {
-            currentState = GameState.Paused;
+            PauseGame();
             return;
         }
-        paddlePlayerOne.Move(deltaTime);
-        paddlePlayerTwo.Move(deltaTime);
-        ball.Move(deltaTime);
+
+        CheckPaddleMovement(deltaTime);
+
+        CheckBallMovement(deltaTime);
         
+        CheckPaddleCollision();
+
         int goal = ball.CheckGoal(windowX);
 
-        ball.CheckPaddleCollision(paddlePlayerOne, true);
-        ball.CheckPaddleCollision(paddlePlayerTwo, false);
+        CheckScore(goal);
 
-        if(goal == 1)
-        {
-            pointsPlayerTwo++;
-        }
-        else if(goal == -1)
-        {
-            pointsPlayerOne++;
-        }
-
-        if(goal != 0)
-        {
-            if (pointsPlayerOne >= winningScore || pointsPlayerTwo >= winningScore)
-            {
-                currentState = GameState.GameOver;
-            }
-            else
-            {
-                currentState = GameState.Restart;
-            }
-
-        }
+        CheckRestartOrGameover(goal);
     }
+
     else if (currentState == GameState.Restart)
     {
-            ball = new Ball(300, 400, 300, 10, Color.Purple, 0, windowY);
-            currentState = GameState.Playing;
+        RestartRound();
     }
+
     else if (currentState == GameState.GameOver)
     {
         if(Raylib.IsKeyPressed(KeyboardKey.Space))
         {
-            ball = new Ball(300, 400, 300, 10, Color.Purple, 0, windowY);
-            paddlePlayerOne = new Paddle(10, 200, 25, 150f, 200f, windowY, paddlePlayerOneController);
-            paddlePlayerTwo = new Paddle(10, 200, 775, 150f, 200f, windowY, paddlePlayerTwoController);
-            pointsPlayerOne = 0;
-            pointsPlayerTwo = 0;
-            currentState = GameState.Playing;
-
+            RestartGame();
         }
     }
     else if (currentState == GameState.Paused)
@@ -164,6 +170,71 @@ void Update()
 
 
 
+void RestartGame()
+{
+    ball = new Ball(ballMiddleX, ballMiddleY, ballSpeed, ballSize, ballColor, ballAreaYMin, windowY, maxBallSpeed);
+    paddlePlayerOne = new Paddle(paddleWidth, paddleHeight, playerOnePaddleX, paddleY, paddleMovementSpeed, windowY);
+    paddlePlayerTwo = new Paddle(paddleWidth, paddleHeight, playerTwoPaddleX, paddleY, paddleMovementSpeed, windowY);
+    pointsPlayerOne = 0;
+    pointsPlayerTwo = 0;
+    currentState = GameState.Playing;
+}
 
+void RestartRound()
+{
+    ball = new Ball(ballMiddleX, ballMiddleY, ballSpeed, ballSize, ballColor, ballAreaYMin, windowY, maxBallSpeed);
+    currentState = GameState.Playing;
+}
 
+void PauseGame()
+{
+    currentState = GameState.Paused;
+}
 
+void CheckRestartOrGameover(int goal)
+{
+    if(goal != 0)
+    {
+        if (pointsPlayerOne >= winningScore || pointsPlayerTwo >= winningScore)
+        {
+            currentState = GameState.GameOver;
+        }
+        else
+        {
+            currentState = GameState.Restart;
+        }
+    }
+}
+
+void CheckPaddleMovement(float deltaTime)
+{
+    paddlePlayerOne.Move(deltaTime, paddlePlayerOneController.GetMovementDirection());
+    paddlePlayerTwo.Move(deltaTime, paddlePlayerTwoController.GetMovementDirection());
+}
+
+void CheckBallMovement(float deltaTime)
+{
+    ball.Move(deltaTime);
+}
+
+void CheckPaddleCollision()
+{
+    ball.CheckPaddleCollision(paddlePlayerOne, true);
+    ball.CheckPaddleCollision(paddlePlayerTwo, false);
+}
+
+void CheckScore(int goal)
+{
+    if(goal == 1)
+    {
+        pointsPlayerTwo++;
+    }
+    else if(goal == -1)
+    {
+        pointsPlayerOne++;
+    }
+    else
+    {
+        return;
+    }
+}
